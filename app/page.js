@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import QRCode from "qrcode.react";
 
 export default function Home() {
   const [inputText, setInputText] = useState("");
   const [qrCodeData, setQrCodeData] = useState([]);
   const [message, setMessage] = useState("");
+  const qrCodeRefs = useRef({});
 
   const handleGenerateQRCode = async () => {
     if (!inputText) {
@@ -15,7 +16,7 @@ export default function Home() {
     }
 
     try {
-      const qrData = [{ url: inputText }];
+      const qrData = [{ id: Date.now(), url: inputText }];
 
       setQrCodeData(qrData);
 
@@ -38,6 +39,22 @@ export default function Home() {
     }
   };
 
+  const handlePrint = (id) => {
+    const qrCodeElement = qrCodeRefs.current[id].querySelector("canvas");
+    const qrCodeDataUrl = qrCodeElement.toDataURL("image/png");
+    const printWindow = window.open('', '', 'width=600,height=400');
+    printWindow.document.write('<html><head><title>Print QR Code</title></head><body>');
+    printWindow.document.write(`<img src="${qrCodeDataUrl}" style="width: 400px; height: 400px;" />`);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
   return (
     <div className="flex flex-col justify-center items-center h-screen">
       <h1 className="py-5 text-5xl font-bold text-blue-500">QR Codes</h1>
@@ -56,9 +73,15 @@ export default function Home() {
       </button>
       <p>{message}</p>
       <div style={{ display: "flex", flexWrap: "wrap" }}>
-        {qrCodeData.map((data, index) => (
-          <div key={index} style={{ margin: 10 }}>
+        {qrCodeData.map((data) => (
+          <div key={data.id} style={{ margin: 10 }} ref={(el) => (qrCodeRefs.current[data.id] = el)}>
             <QRCode value={data.url} />
+            <button
+              className="my-2 focus:outline-none text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-900"
+              onClick={() => handlePrint(data.id)}
+            >
+              Print QR Code
+            </button>
           </div>
         ))}
       </div>
